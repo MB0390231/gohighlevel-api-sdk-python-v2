@@ -45,7 +45,7 @@ def handle_callback():
     response = requests.post(f"{HighLevelConfig.API_BASE_URL}/oauth/token", data=data, headers=headers)
     print(response.json())
 
-    return {response.json()}
+    return response.json()
 
 
 def refresh_token(refresh_token):
