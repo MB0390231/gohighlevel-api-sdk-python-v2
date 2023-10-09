@@ -3,6 +3,33 @@ from copy import deepcopy
 
 from highlevel_sdk.config import HighLevelConfig
 from highlevel_sdk.exceptions import HighLevelError
+from highlevel_sdk.models.abstract_object import AbstractObject
+
+
+class ObjectParser(object):
+    def parse_single(response, target_class):
+        if not target_class:
+            raise HighLevelError("Must specify target class when parsing single object")
+
+        data = response
+        if isinstance(response["data"], dict):
+            data = response["data"]
+            return AbstractObject.create_object(data, target_class)
+        else:
+            raise HighLevelError("Must specify either target class calling object")
+
+    def parse_multiple(response, target_class=None):
+        ret = []
+        for key in response.keys():
+            if key == "meta":
+                continue
+
+            if isinstance(response[key], list):
+                for json_obj in response[key]:
+                    ret.append(ObjectParser.parse_single(json_obj), target_class)
+            else:
+                ret.append(ObjectParser.parse_single(response[key], target_class))
+        return ret
 
 
 class HighLevelClient(object):
@@ -17,7 +44,7 @@ class HighLevelClient(object):
             "Content-Type": "application/json",
         }
 
-    def call(self, method, path, data=None):
+    def _call(self, method, path, data=None):
         if method in ("GET", "DELETE"):
             response = request(method, f"{HighLevelConfig.API_BASE_URL}/{path}", headers=self.headers, params=data)
         else:
@@ -83,7 +110,6 @@ class HighLevelRequest(object):
         node,
         endpoint,
         api_type=None,
-        param_checker=TypeChecker({}, {}),
         target_class=None,
         response_parser=ObjectParser,
     ) -> None:
@@ -102,25 +128,12 @@ class HighLevelRequest(object):
         self._endpoint = endpoint
         self._api_type = api_type
         self._path = f"{endpoint}/{node}"
-        self._param_checker = param_checker
         self._params = {}
         self._target_class = target_class
         self._response_parser = response_parser
 
     def add_param(self, key, value):
-        if not self._param_checker.is_valid_pair(key, value):
-            utils.warning(
-                "value of "
-                + key
-                + " might not be compatible. "
-                + " Expect "
-                + self._param_checker.get_type(key)
-                + "; "
-                + " got "
-                + str(type(value))
-            )
-        else:
-            self._params[key] = self._extract_value(value)
+        self._params[key] = self._extract_value(value)
         return self
 
     def add_params(self, params):
@@ -218,17 +231,21 @@ class Cursor(object):
 
         returns True if successful, False otherwise
         """
-        if not self._has_next_page:
-            return False
-        
-        response = self._api.call(
+
+        response = self._api._call(
             method="GET",
             path=self._path,
             params=self._params,
         )
         self._headers = response.headers()
 
-        if response.error():
-            raise response.error()
-        
+        body = response.json()
+        self._queue = self._object_parser.parse_multiple(body, self._target_objects_class)
+        self._has_next_page = body["meta"]["nextPage"] is not None
+        self._next_page = body["meta"]["nextPageUrl"]
+        self._path = self._next_page
 
+        if not self._has_next_page:
+            return False
+
+        return True
