@@ -12,9 +12,9 @@ def initiate_auth():
 
     options = {
         "requestType": "code",
-        "redirectUri": "http://localhost:3000/oauth/callback",
+        "redirectUri": HighLevelConfig.REDIRECT_URI,
         "clientId": app_config["clientId"],
-        "scopes": ["contacts.readonly"],
+        "scopes": HighLevelConfig.SCOPES,
     }
 
     params = {
@@ -23,7 +23,6 @@ def initiate_auth():
         "client_id": options["clientId"],
         "scope": " ".join(options["scopes"]),
     }
-
     authorize_url = f"{app_config['baseUrl']}/oauth/chooselocation?{urlencode(params)}"
     return redirect(authorize_url)
 
@@ -38,7 +37,7 @@ def handle_callback():
         "grant_type": "authorization_code",
         "code": request.args.get("code"),
         "user_type": "Location",
-        "redirect_uri": "http://localhost:3000/oauth/callback",
+        "redirect_uri": HighLevelConfig,
     }
 
     headers = {"Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded"}
@@ -57,7 +56,7 @@ def refresh_token(refresh_token):
         "grant_type": "refresh_token",
         "refresh_token": refresh_token,
         "user_type": "Location",
-        "redirect_uri": "http://localhost:3000/oauth/callback",
+        "redirect_uri": HighLevelConfig,
     }
 
     headers = {"Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded"}
