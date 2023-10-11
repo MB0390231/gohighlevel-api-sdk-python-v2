@@ -1,8 +1,9 @@
 from requests import request
 from copy import deepcopy
+import json
 
 from highlevel_sdk.config import HighLevelConfig
-from highlevel_sdk.exceptions import HighLevelError
+from highlevel_sdk.exceptions import HighLevelError, HighLevelRequestException
 from highlevel_sdk.models.abstract_object import AbstractObject
 
 
@@ -42,13 +43,15 @@ class HighLevelClient(object):
         self.headers = {
             "Authorization": f"Bearer {self.access_token}",
             "Content-Type": "application/json",
+            "Version": HighLevelConfig.VERSION,
         }
 
     def _call(self, method, path, data=None):
+        path = HighLevelConfig.API_BASE_URL + path
         if method in ("GET", "DELETE"):
-            response = request(method, f"{HighLevelConfig.API_BASE_URL}/{path}", headers=self.headers, params=data)
+            response = request(method, path, headers=self.headers, params=data)
         else:
-            response = request(method, f"{HighLevelConfig.API_BASE_URL}/{path}", headers=self.headers, data=data)
+            response = request(method, path, headers=self.headers, data=data)
 
         highlevel_response = HighLevelResponse(
             body=response.text,
@@ -79,18 +82,18 @@ class HighLevelResponse(object):
 
     def error(self):
         if self.is_error():
-            return HighLevelError(
+            return HighLevelRequestException(
                 "Call to HighLevel API was unsuccessful.",
+                request_context=self.call,
+                http_headers=self.headers,
+                http_status=self.status_code,
                 body=self.body,
-                headers=self.headers,
-                status_code=self.status_code,
-                call=self.call,
             )
         else:
             return None
 
     def json(self):
-        return self.body
+        return json.loads(self.body)
 
     def text(self):
         return self.body
