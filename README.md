@@ -16,13 +16,21 @@ To authenticate with the GoHighLevel API, you can follow the OAuth flow below:
 
 - Navigate to https://marketplace.gohighlevel.com/ and sign up for a developer account.
 - Once you have created a developer account, go to "My Apps" and click on "Create App".
-- Give it a name, make it public or private, and choose whether you need the "Agency" or "Sub-Account" distribution type. The distribution will **depend** on the scopes you need. For example, if you want to make changes to a location using the Location endpoint, then you will need to select "Agency" type. If you aren't sure yet, then click both here.
+- Give it a name, make it public or private, and choose whether you need the "Agency" or "Sub-Account" distribution type. Pick both. You won't regret it.
 
 - Click on the app you have just created and you will be directed to the "Settings" page and should see sections for "Scopes", "Redirect URLs", and "Client Keys".
 
 - First you will need to select which scopes your app will need. For example, if you want to use the "Calendar" endpoint to pull information about calendars, then you will need to choose "calendars.readonly". If you need to make updates to calendars, then choose "calendars.readonly". You can find more information about scopes here: https://highlevel.stoplight.io/docs/integrations/lgbsau1maxulb-scopes
 
-- Next you will need to add the following redirect URL: "http://localhost:3000/oauth/callback". This is will allow you to retrieve the access token later on.
+- After choosing the scope needed, you will need to add the scope to the config file. Navigate to `config.py` and replace `SCOPE` with the ones you have chosen:
+
+  ```python
+  # config.py
+  class HighLevelConfig:
+      SCOPE = ['scopes_here']
+  ```
+
+- Next you will need to add the following redirect URL to your app: "http://localhost:3000/oauth/callback". This is will allow you to retrieve the access token later on.
 
 - Navigate down to "Client Keys" and click "Add". Input a name and copy both the "Client ID" and "Client Secret". It is important that you keep these somewhere safe.
 
@@ -33,7 +41,6 @@ To authenticate with the GoHighLevel API, you can follow the OAuth flow below:
    class HighLevelConfig:
        CLIENT_ID = 'your_client_id'
        CLIENT_SECRET = 'your_client_secret'
-       AUTH_BASE_URL = ''
    ```
 
 4. Navigate into your terminal and run the following code.
