@@ -1,14 +1,18 @@
 from flask import Flask, redirect, request, jsonify
 import requests
 from urllib.parse import urlencode
-from config import HighLevelConfig
+from highlevel_sdk.config import HighLevelConfig
+
 
 app = Flask(__name__)
 
 
 @app.route("/initiate")
 def initiate_auth():
-    app_config = {"clientId": HighLevelConfig.CLIENT_ID, "baseUrl": HighLevelConfig.AUTH_BASE_URL}
+    app_config = {
+        "clientId": HighLevelConfig.CLIENT_ID,
+        "baseUrl": HighLevelConfig.AUTH_BASE_URL,
+    }
 
     options = {
         "requestType": "code",
@@ -23,13 +27,18 @@ def initiate_auth():
         "client_id": options["clientId"],
         "scope": " ".join(options["scopes"]),
     }
+
     authorize_url = f"{app_config['baseUrl']}/oauth/chooselocation?{urlencode(params)}"
+    print(authorize_url)
     return redirect(authorize_url)
 
 
 @app.route("/oauth/callback")
 def handle_callback():
-    app_config = {"clientId": HighLevelConfig.CLIENT_ID, "clientSecret": HighLevelConfig.CLIENT_SECRET}
+    app_config = {
+        "clientId": HighLevelConfig.CLIENT_ID,
+        "clientSecret": HighLevelConfig.CLIENT_SECRET,
+    }
 
     data = {
         "client_id": app_config["clientId"],
@@ -40,15 +49,22 @@ def handle_callback():
         "redirect_uri": HighLevelConfig,
     }
 
-    headers = {"Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded"}
-    response = requests.post(f"{HighLevelConfig.API_BASE_URL}/oauth/token", data=data, headers=headers)
-    print(response.json())
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
+    response = requests.post(
+        f"{HighLevelConfig.API_BASE_URL}/oauth/token", data=data, headers=headers
+    )
 
     return response.json()
 
 
 def refresh_token(refresh_token):
-    app_config = {"clientId": HighLevelConfig.CLIENT_ID, "clientSecret": HighLevelConfig.CLIENT_SECRET}
+    app_config = {
+        "clientId": HighLevelConfig.CLIENT_ID,
+        "clientSecret": HighLevelConfig.CLIENT_SECRET,
+    }
 
     data = {
         "client_id": app_config["clientId"],
@@ -59,9 +75,14 @@ def refresh_token(refresh_token):
         "redirect_uri": HighLevelConfig,
     }
 
-    headers = {"Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded"}
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
 
-    response = requests.post(f"{HighLevelConfig.API_BASE_URL}/oauth/token", data=data, headers=headers)
+    response = requests.post(
+        f"{HighLevelConfig.API_BASE_URL}/oauth/token", data=data, headers=headers
+    )
 
     return response.json()
 
