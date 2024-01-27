@@ -3,34 +3,7 @@ from copy import deepcopy
 import json
 
 from highlevel_sdk.config import HighLevelConfig
-from highlevel_sdk.exceptions import HighLevelError, HighLevelRequestException
-from highlevel_sdk.models.abstract_object import AbstractObject
-
-
-class ObjectParser(object):
-    def parse_single(response, target_class):
-        if not target_class:
-            raise HighLevelError("Must specify target class when parsing single object")
-
-        data = response
-        if isinstance(response["data"], dict):
-            data = response["data"]
-            return AbstractObject.create_object(data, target_class)
-        else:
-            raise HighLevelError("Must specify either target class calling object")
-
-    def parse_multiple(response, target_class=None):
-        ret = []
-        for key in response.keys():
-            if key == "meta":
-                continue
-
-            if isinstance(response[key], list):
-                for json_obj in response[key]:
-                    ret.append(ObjectParser.parse_single(json_obj), target_class)
-            else:
-                ret.append(ObjectParser.parse_single(response[key], target_class))
-        return ret
+from highlevel_sdk.exceptions import HighLevelRequestException
 
 
 class HighLevelClient(object):
@@ -38,27 +11,38 @@ class HighLevelClient(object):
     Encapsulates session attributes and methods to make API calls.
     """
 
-    def __init__(self, access_token) -> None:
-        self.access_token = access_token
-        self.headers = {
-            "Authorization": f"Bearer {self.access_token}",
-            "Content-Type": "application/json",
-            "Version": HighLevelConfig.VERSION,
-        }
+    def __init__(self) -> None:
+        pass
 
-    def _call(self, method, path, data=None):
+    def build_headers(access_token=None):
+        assert access_token != None, "Must provide access token"
+        headers = {
+            "Content-Type": "application/json",
+            "version": HighLevelConfig.VERSION,
+        }
+        if access_token:
+            headers["Authorization"] = f"Bearer {access_token}"
+        return headers
+
+    @classmethod
+    def _call(cls, method, path, token_data=None, data=None):
         path = HighLevelConfig.API_BASE_URL + path
+        access_token = token_data["access_token"]
+        headers = cls.build_headers(access_token=access_token)
         if method in ("GET", "DELETE"):
-            response = request(method, path, headers=self.headers, params=data)
+            response = request(method, path, headers=headers, params=data)
         else:
-            response = request(method, path, headers=self.headers, data=data)
+            response = request(method, path, headers=headers, data=json.dumps(data))
 
         highlevel_response = HighLevelResponse(
             body=response.text,
             headers=response.headers,
             status_code=response.status_code,
-            call={"method": method, "path": path, "params": data, "headers": self.headers},
+            call={"method": method, "path": path, "params": data, "headers": headers},
         )
+
+        # push token_data to response
+        highlevel_response.token_data = token_data
 
         if highlevel_response.is_error():
             raise highlevel_response.error()
@@ -112,9 +96,11 @@ class HighLevelRequest(object):
         method,
         node,
         endpoint,
+        token_data=None,
+        api=None,
         api_type=None,
         target_class=None,
-        response_parser=ObjectParser,
+        response_parser=None,
     ) -> None:
         """
         Args:
@@ -129,8 +115,13 @@ class HighLevelRequest(object):
         self._method = method
         self._node = node
         self._endpoint = endpoint
+        self.token_data = token_data
+        self._api = api
         self._api_type = api_type
-        self._path = f"{endpoint}/{node}"
+        if bool(node):
+            self._path = f"{endpoint}/{node}"
+        else:
+            self._path = f"{endpoint}/"
         self._params = {}
         self._target_class = target_class
         self._response_parser = response_parser
@@ -152,7 +143,10 @@ class HighLevelRequest(object):
         elif isinstance(value, list):
             return [self._extract_value(item) for item in value]
         elif isinstance(value, dict):
-            return dict((self._extract_value(k), self._extract_value(v)) for (k, v) in value.items())
+            return dict(
+                (self._extract_value(k), self._extract_value(v))
+                for (k, v) in value.items()
+            )
         else:
             return value
 
@@ -162,21 +156,26 @@ class HighLevelRequest(object):
             cursor = Cursor(
                 target_objects_class=self._target_class,
                 params=params,
-                node=self._node,
                 endpoint=self._endpoint,
+                token_data=self.token_data,
+                api=self._api,
                 object_parser=self._response_parser,
             )
             cursor.load_next_page()
             return cursor
-        response = self._api.call(
+        response = self._api._call(
             method=self._method,
             path=self._path,
-            params=params,
+            data=params,
+            token_data=self.token_data,
         )
+
         if response.error():
             raise response.error()
         if self._response_parser:
-            return self._response_parser.parse_single(response.json())
+            return self._response_parser.parse_single(
+                response.json(), self._target_class, self.token_data
+            )
         else:
             return response
 
@@ -186,7 +185,9 @@ class Cursor(object):
     Iterates over pages of data.
     """
 
-    def __init__(self, target_objects_class, params, node, endpoint, object_parser) -> None:
+    def __init__(
+        self, target_objects_class, params, endpoint, token_data, api, object_parser
+    ) -> None:
         """
         Args:
             target_objects_class : an instance the AbstractObject class. Must have an ID
@@ -198,14 +199,15 @@ class Cursor(object):
 
         self._target_objects_class = target_objects_class
         self._params = params
-        self._node = node
         self._endpoint = endpoint
-        self._path = f"{endpoint}/{node}"
+        self.token_data = token_data
+        self._api = api
+        self._path = f"{endpoint}"
         self._object_parser = object_parser
         self._queue = []
         self._headers = None
-        self._next_page = None
         self._has_next_page = False
+        self._start_after_id = None
 
     def __repr__(self):
         return str(self._queue)
@@ -234,19 +236,28 @@ class Cursor(object):
 
         returns True if successful, False otherwise
         """
-
         response = self._api._call(
             method="GET",
             path=self._path,
-            params=self._params,
+            data=self._params,
+            token_data=self.token_data,
         )
-        self._headers = response.headers()
+        self._headers = response.headers
 
         body = response.json()
-        self._queue = self._object_parser.parse_multiple(body, self._target_objects_class)
-        self._has_next_page = body["meta"]["nextPage"] is not None
-        self._next_page = body["meta"]["nextPageUrl"]
-        self._path = self._next_page
+        self._queue = self._object_parser.parse_multiple(
+            body, self._target_objects_class, self.token_data
+        )
+        if not self._queue:
+            return False
+        if not body.get("meta"):
+            return False
+        self._has_next_page = (
+            body["meta"]["nextPage"] is not None
+            and body["meta"]["startAfter"] is not None
+        )
+        self._params["startAfter"] = body["meta"]["startAfter"]
+        self._params["startAfterId"] = body["meta"]["startAfterId"]
 
         if not self._has_next_page:
             return False
