@@ -5,16 +5,18 @@ load_dotenv()
 
 
 class HighLevelConfig(object):
-    CLIENT_ID = os.environ["CLIENT_ID"]
-    CLIENT_SECRET = os.environ["CLIENT_SECRET"]
+    CLIENT_ID = os.environ.get("GHL_API_V2_CLIENT_ID", None)
+    CLIENT_SECRET = os.environ.get("GHL_API_V2_SECRET_KEY", None)
     API_BASE_URL = "https://services.leadconnectorhq.com"
     AUTH_BASE_URL = "https://marketplace.gohighlevel.com"
     VERSION = "2021-07-28"
     SCOPES = [
+        "businesses.readonly",
+        "calendars.readonly",
         "contacts.readonly",
         "locations.readonly",
-        # "opportunities.readonly",
-        # "forms.readonly",
-        # "converations.readonly",
+        "opportunities.readonly",
+        "calendars/events.readonly",
+        "users.readonly",
     ]
     REDIRECT_URI = "http://localhost:3000/oauth/callback"

@@ -1,5 +1,6 @@
 import json
 import collections.abc as collections_abc
+from highlevel_sdk.client import HighLevelClient
 
 
 class AbstractObject(collections_abc.MutableMapping):
@@ -11,11 +12,33 @@ class AbstractObject(collections_abc.MutableMapping):
     class Fields:
         pass
 
-    def __init__(self, api=None, id=None):
+    def __init__(self, token_data=None, id=None):
         self._data = {}
-        self.api = api
+        self.api = HighLevelClient
+
         if id:
             self["id"] = id
+
+        if token_data:
+            self.set_token_data(token_data)
+
+    def set_token_data(self, token_data):
+        self.token_data = token_data
+
+    def get_token_data(self):
+        return self.token_data
+
+    def refresh_token(self):
+        if not self.token_data:
+            raise ValueError("Token data is not set")
+
+        from highlevel_sdk.auth import refresh_token
+
+        token_data = refresh_token(self.token_data["refresh_token"])
+
+        self.set_token_data(token_data)
+
+        return
 
     def __getitem__(self, key):
         return self._data[str(key)]
@@ -63,10 +86,23 @@ class AbstractObject(collections_abc.MutableMapping):
         """
         raise NotImplementedError
 
+    def api_get(self, params=None):
+        """
+        Returns the object from the API
+        """
+        method = "GET"
+        path = self.get_endpoint()
+        token_data = self.get_token_data()
+        response = self.api._call(method, path, token_data=token_data, data=params)
+        self._set_data(response.json())
+        return self
+
     # reads in data from json object
     def _set_data(self, data):
-        if hasattr(data, "json"):
-            data = data.json()
+        """
+        sets data from a json object
+        """
+        if isinstance(data, dict):
             for key, value in data.items():
                 self[key] = value
         else:
@@ -78,7 +114,9 @@ class AbstractObject(collections_abc.MutableMapping):
         if isinstance(data, AbstractObject):
             data = data.export_all_data()
         elif isinstance(data, dict):
-            data = dict((k, self.export_value(v)) for k, v in data.items() if v is not None)
+            data = dict(
+                (k, self.export_value(v)) for k, v in data.items() if v is not None
+            )
         elif isinstance(data, list):
             data = [self.export_value(v) for v in data]
         return data
@@ -86,16 +124,8 @@ class AbstractObject(collections_abc.MutableMapping):
     def export_all_data(self):
         return self.export_value(self._data)
 
-    def create_object(data, target_class):
+    def create_object(data, target_class, token_data):
         new_object = target_class()
         new_object._set_data(data)
+        new_object.set_token_data(token_data)
         return new_object
-
-    def get(self):
-        """
-        Returns the object data
-        """
-        path = self.get_endpoint()
-        data = self.api._call("GET", path)
-        self._set_data(data)
-        return self

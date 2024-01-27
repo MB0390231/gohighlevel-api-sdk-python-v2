@@ -25,7 +25,8 @@ class HighLevelRequestException(HighLevelError):
             + "  Params:  %s\n" % self._request_context.get("params")
             + "\n"
             + "  Status:  %s\n" % self._http_status
-            + "  Response:\n    %s" % re.sub(r"\n", "\n    ", json.dumps(self._body, indent=2))
+            + "  Response:\n    %s"
+            % re.sub(r"\n", "\n    ", json.dumps(self._body, indent=2))
             + "\n"
         )
 
