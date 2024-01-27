@@ -77,4 +77,29 @@ from highlevel_sdk.auth import refresh_token
 new_token = refresh_token(refresh_token)
 ```
 
+You can also refresh the token by using the refresh_token method on any of the GoHighLevel objects in the models.py file.
+
+```python
+from highlevel_sdk.models.models import Location
+
+token_data = {
+    "access_token": "initial_access_token",
+    "refresh_token": "initial_refresh_token",
+    "expires_in": 3600
+}
+
+location = Location(id="location_id_here")
+
+location.set_token_data(token_data)
+
+try:
+    location.refresh_token()
+except ValueError as e:
+    print(e)
+
+updated_token_data = location.get_token_data()
+
+print(updated_token_data)
+```
+
 For more information about the GoHighLevel API and available endpoints, refer to the official documentation at [GoHighLevel API Documentation](https://highlevel.stoplight.io/docs/integrations/0443d7d1a4bd0-overview).
