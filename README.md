@@ -72,7 +72,7 @@ You can now use this access token to authenticate your requests to the GoHighLev
 To refresh your access token, you can use the refresh_token function in the auth.py file to get a new access token.
 
 ```python
-from highlevel_sdk.auth import refresh_token
+from auth import refresh_token
 
 new_token = refresh_token(refresh_token)
 ```
@@ -80,7 +80,7 @@ new_token = refresh_token(refresh_token)
 You can also refresh the token by using the refresh_token method on any of the GoHighLevel objects in the models.py file.
 
 ```python
-from highlevel_sdk.models.models import Location
+from models.models import Location
 
 token_data = {
     "access_token": "initial_access_token",

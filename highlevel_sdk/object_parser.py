@@ -1,5 +1,5 @@
-from highlevel_sdk.exceptions import HighLevelError
-from highlevel_sdk.models.abstract_object import AbstractObject
+from highlevel_sdk_python.highlevel_sdk.exceptions import HighLevelError
+from highlevel_sdk_python.highlevel_sdk.models.abstract_object import AbstractObject
 
 
 class ObjectParser(object):

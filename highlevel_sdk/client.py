@@ -2,8 +2,8 @@ from requests import request
 from copy import deepcopy
 import json
 
-from highlevel_sdk.config import HighLevelConfig
-from highlevel_sdk.exceptions import HighLevelRequestException
+from highlevel_sdk_python.highlevel_sdk.config import HighLevelConfig
+from highlevel_sdk_python.highlevel_sdk.exceptions import HighLevelRequestException
 
 
 class HighLevelClient(object):

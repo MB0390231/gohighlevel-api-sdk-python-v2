@@ -1,6 +1,6 @@
-from highlevel_sdk.models.abstract_object import AbstractObject
-from highlevel_sdk.client import HighLevelRequest
-from highlevel_sdk.object_parser import ObjectParser
+from highlevel_sdk_python.highlevel_sdk.models.abstract_object import AbstractObject
+from highlevel_sdk_python.highlevel_sdk.client import HighLevelRequest
+from highlevel_sdk_python.highlevel_sdk.object_parser import ObjectParser
 
 
 class Agency(AbstractObject):

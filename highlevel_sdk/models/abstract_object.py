@@ -1,6 +1,6 @@
 import json
 import collections.abc as collections_abc
-from highlevel_sdk.client import HighLevelClient
+from highlevel_sdk_python.highlevel_sdk.client import HighLevelClient
 
 
 class AbstractObject(collections_abc.MutableMapping):
@@ -32,7 +32,7 @@ class AbstractObject(collections_abc.MutableMapping):
         if not self.token_data:
             raise ValueError("Token data is not set")
 
-        from highlevel_sdk.auth import refresh_token
+        from auth import refresh_token
 
         token_data = refresh_token(self.token_data["refresh_token"])
 
