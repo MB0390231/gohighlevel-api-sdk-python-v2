@@ -32,7 +32,7 @@ class AbstractObject(collections_abc.MutableMapping):
         if not self.token_data:
             raise ValueError("Token data is not set")
 
-        from auth import refresh_token
+        from highlevel_sdk_python.highlevel_sdk.auth import refresh_token
 
         token_data = refresh_token(self.token_data["refresh_token"])
 

@@ -154,6 +154,28 @@ class Location(AbstractObject):
         )
 
         return request.execute()
+    
+    def get_pipelines(self):
+        path = "/opportunities/pipelines"
+
+        request = HighLevelRequest(
+            method="GET",
+            node=None,
+            endpoint=path,
+            token_data=self.get_token_data(),
+            api=self.api,
+            api_type="EDGE",
+            target_class=Pipeline,
+            response_parser=ObjectParser,
+        )
+
+        params = {
+            "locationId": self["id"],
+        }
+        request.add_params(params)
+
+        return request.execute()
+
 
     def get_opportunities(self, limit=20):
         path = "/opportunities/search"
@@ -170,6 +192,7 @@ class Location(AbstractObject):
         )
 
         params = {
+            # for some reason gohighlevel devs decided to deviate form locationId to location_id here wtf
             "location_id": self["id"],
             "limit": limit,
         }
@@ -203,6 +226,15 @@ class Appointment(AbstractObject):
             raise ValueError("Appointment must have an id to get endpoint")
         return "/appointments/" + self["id"]
 
+class Pipeline(AbstractObject):
+    def __init__(self, token_data=None, id=None):
+        super().__init__(token_data=token_data, id=id)
+
+    def get_endpoint(self):
+        if self["id"] is None:
+            raise ValueError("Pipeline must have an id to get endpoint")
+        return "/opportunities/pipelines/" + self["id"]
+    
 
 class User(AbstractObject):
     def __init__(self, token_data=None, id=None):
