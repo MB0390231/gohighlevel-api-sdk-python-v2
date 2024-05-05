@@ -1,6 +1,7 @@
 from requests import request
 from copy import deepcopy
 import json
+from requests import get, post, put, delete
 
 from highlevel_sdk_python.highlevel_sdk.config import HighLevelConfig
 from highlevel_sdk_python.highlevel_sdk.exceptions import HighLevelRequestException
@@ -29,10 +30,14 @@ class HighLevelClient(object):
         path = HighLevelConfig.API_BASE_URL + path
         access_token = token_data["access_token"]
         headers = cls.build_headers(access_token=access_token)
-        if method in ("GET", "DELETE"):
-            response = request(method, path, headers=headers, params=data)
-        else:
-            response = request(method, path, headers=headers, data=json.dumps(data))
+        if method == "GET":
+            response = get(path, headers=headers, params=data)
+        elif method == "DELETE":
+            response = delete(path, headers=headers, params=data)
+        elif method == "POST":
+            response = post(path, headers=headers, data=json.dumps(data))
+        elif method == "PUT":
+            response = put(path, headers=headers, data=json.dumps(data))
 
         highlevel_response = HighLevelResponse(
             body=response.text,
