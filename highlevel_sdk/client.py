@@ -1,7 +1,7 @@
-from requests import request
 from copy import deepcopy
 import json
 from requests import get, post, put, delete
+from time import sleep
 
 from highlevel_sdk_python.highlevel_sdk.config import HighLevelConfig
 from highlevel_sdk_python.highlevel_sdk.exceptions import HighLevelRequestException
@@ -241,12 +241,25 @@ class Cursor(object):
 
         returns True if successful, False otherwise
         """
-        response = self._api._call(
-            method="GET",
-            path=self._path,
-            data=self._params,
-            token_data=self.token_data,
-        )
+        # GHL sucks so we are going to do something non-ideal and try to call the api 3 times before giving up
+        RETRY_DELAY = 1
+        for i in range(3):
+            try:
+                response = self._api._call(
+                    method="GET",
+                    path=self._path,
+                    data=self._params,
+                    token_data=self.token_data,
+                )
+                break
+            except HighLevelRequestException as e:
+                if i == 2:
+                    raise e
+                sleep(RETRY_DELAY)
+                RETRY_DELAY *= 2
+                print(f"Retrying cursor load_next_page {i+1}")
+                continue
+
         self._headers = response.headers
 
         body = response.json()
