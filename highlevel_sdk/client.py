@@ -30,14 +30,27 @@ class HighLevelClient(object):
         path = HighLevelConfig.API_BASE_URL + path
         access_token = token_data["access_token"]
         headers = cls.build_headers(access_token=access_token)
-        if method == "GET":
-            response = get(path, headers=headers, params=data)
-        elif method == "DELETE":
-            response = delete(path, headers=headers, params=data)
-        elif method == "POST":
-            response = post(path, headers=headers, data=json.dumps(data))
-        elif method == "PUT":
-            response = put(path, headers=headers, data=json.dumps(data))
+
+        # Try up to 3 times to make the request
+        RETRY_DELAY = 3
+        for i in range(3):
+            try:
+                if method == "GET":
+                    response = get(path, headers=headers, params=data)
+                elif method == "DELETE":
+                    response = delete(path, headers=headers, params=data)
+                elif method == "POST":
+                    response = post(path, headers=headers, data=json.dumps(data))
+                elif method == "PUT":
+                    response = put(path, headers=headers, data=json.dumps(data))
+
+                break
+            except Exception as e:
+                if i == 2:
+                    raise e
+                sleep(RETRY_DELAY)
+                RETRY_DELAY *= 2
+                continue
 
         highlevel_response = HighLevelResponse(
             body=response.text,
@@ -241,24 +254,13 @@ class Cursor(object):
 
         returns True if successful, False otherwise
         """
-        # GHL sucks so we are going to do something non-ideal and try to call the api 3 times before giving up
-        RETRY_DELAY = 1
-        for i in range(3):
-            try:
-                response = self._api._call(
-                    method="GET",
-                    path=self._path,
-                    data=self._params,
-                    token_data=self.token_data,
-                )
-                break
-            except HighLevelRequestException as e:
-                if i == 2:
-                    raise e
-                sleep(RETRY_DELAY)
-                RETRY_DELAY *= 2
-                print(f"Retrying cursor load_next_page {i+1}")
-                continue
+
+        response = self._api._call(
+            method="GET",
+            path=self._path,
+            data=self._params,
+            token_data=self.token_data,
+        )
 
         self._headers = response.headers
 
