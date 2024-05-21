@@ -119,6 +119,7 @@ class HighLevelRequest(object):
         api_type=None,
         target_class=None,
         response_parser=None,
+        custom_pagination_fn=None,
     ) -> None:
         """
         Args:
@@ -129,6 +130,8 @@ class HighLevelRequest(object):
             param_checker (optional): The type checker to use for the request.
             target_class (optional): The class to use for the request.
             response_parser (optional): The parser to use for the response.
+            custom_pagination_fn (optional): Custom pagination function to use for the cursor.
+
         """
         self._method = method
         self._node = node
@@ -143,6 +146,7 @@ class HighLevelRequest(object):
         self._params = {}
         self._target_class = target_class
         self._response_parser = response_parser
+        self._custom_pagination_fn = custom_pagination_fn
 
     def add_param(self, key, value):
         self._params[key] = self._extract_value(value)
@@ -178,6 +182,7 @@ class HighLevelRequest(object):
                 token_data=self.token_data,
                 api=self._api,
                 object_parser=self._response_parser,
+                custom_pagination_fn=self._custom_pagination_fn,
             )
             cursor.load_next_page()
             return cursor
@@ -204,7 +209,14 @@ class Cursor(object):
     """
 
     def __init__(
-        self, target_objects_class, params, endpoint, token_data, api, object_parser
+        self,
+        target_objects_class,
+        params,
+        endpoint,
+        token_data,
+        api,
+        object_parser,
+        custom_pagination_fn=None,
     ) -> None:
         """
         Args:
@@ -213,6 +225,7 @@ class Cursor(object):
             node : The node to use for the request.
             endpoint : The endpoint to use for the request.
             object_parser : The parser to use for the response.
+            custom_pagination_fn (optional): Custom pagination function to use for the cursor.
         """
 
         self._target_objects_class = target_objects_class
@@ -226,6 +239,7 @@ class Cursor(object):
         self._headers = None
         self._has_next_page = False
         self._start_after_id = None
+        self.custom_pagination_fn = custom_pagination_fn
 
     def __repr__(self):
         return str(self._queue)
@@ -250,10 +264,17 @@ class Cursor(object):
 
     def load_next_page(self):
         """
-        populates the queue by querying the api for the next page
+        Loads the next page of data.
 
-        returns True if successful, False otherwise
+        Returns:
+            bool: True if there is a next page, False otherwise.
         """
+        if self.custom_pagination_fn:
+            return self.custom_pagination_fn(self)
+        else:
+            return self.load_next_page_meta()
+
+    def load_next_page_meta(self):
 
         response = self._api._call(
             method="GET",

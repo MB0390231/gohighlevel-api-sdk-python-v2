@@ -15,7 +15,14 @@ class ObjectParser(object):
     def parse_multiple(response, target_class=None, token_data=None):
         ret = []
         for key in response.keys():
-            if key == "meta" or key == "traceId" or key == "aggregations":
+            if key in [
+                "meta",
+                "traceId",
+                "aggregations",
+                "total",
+                "lastMessageId",
+                "nextPage",
+            ]:
                 continue
 
             if isinstance(response[key], list):

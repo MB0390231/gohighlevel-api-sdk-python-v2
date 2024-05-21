@@ -1,6 +1,10 @@
 from highlevel_sdk_python.highlevel_sdk.models.abstract_object import AbstractObject
 from highlevel_sdk_python.highlevel_sdk.client import HighLevelRequest
 from highlevel_sdk_python.highlevel_sdk.object_parser import ObjectParser
+from highlevel_sdk_python.highlevel_sdk.utils import (
+    paginate_conversations,
+    paginate_messages,
+)
 
 
 class Agency(AbstractObject):
@@ -154,7 +158,7 @@ class Location(AbstractObject):
         )
 
         return request.execute()
-    
+
     def get_pipelines(self):
         path = "/opportunities/pipelines"
 
@@ -175,7 +179,6 @@ class Location(AbstractObject):
         request.add_params(params)
 
         return request.execute()
-
 
     def get_opportunities(self, limit=20):
         path = "/opportunities/search"
@@ -216,6 +219,35 @@ class Location(AbstractObject):
 
         return request.execute()
 
+    def get_conversations(
+        self,
+        limit=20,
+    ):
+        path = "/conversations/search"
+
+        request = HighLevelRequest(
+            method="GET",
+            node=None,
+            endpoint=path,
+            token_data=self.get_token_data(),
+            api=self.api,
+            api_type="EDGE",
+            target_class=Conversation,
+            response_parser=ObjectParser,
+            custom_pagination_fn=paginate_conversations,
+        )
+
+        params = {
+            "locationId": self["id"],
+            "limit": limit,
+            "sort": "desc",
+            "sortBy": "last_message_date",
+        }
+
+        request.add_params(params)
+
+        return request.execute()
+
 
 class Appointment(AbstractObject):
     def __init__(self, token_data=None, id=None):
@@ -226,6 +258,7 @@ class Appointment(AbstractObject):
             raise ValueError("Appointment must have an id to get endpoint")
         return "/appointments/" + self["id"]
 
+
 class Pipeline(AbstractObject):
     def __init__(self, token_data=None, id=None):
         super().__init__(token_data=token_data, id=id)
@@ -234,7 +267,7 @@ class Pipeline(AbstractObject):
         if self["id"] is None:
             raise ValueError("Pipeline must have an id to get endpoint")
         return "/opportunities/pipelines/" + self["id"]
-    
+
 
 class User(AbstractObject):
     def __init__(self, token_data=None, id=None):
@@ -338,3 +371,52 @@ class Opportunity(AbstractObject):
             raise ValueError("Opportunity must have an id to get endpoint")
 
         return "/opportunities/" + self["id"]
+
+
+class Conversation(AbstractObject):
+
+    def __init__(self, token_data=None, id=None):
+        super().__init__(token_data=token_data, id=id)
+
+    def get_endpoint(self):
+        if self["id"] is None:
+            raise ValueError("Conversations must have an id to get endpoint")
+
+        return "/conversations/" + self["id"]
+
+    def get_messages(self, limit=20, types=None):
+        path = f"/conversations/{self['id']}/messages"
+
+        request = HighLevelRequest(
+            method="GET",
+            node=None,
+            endpoint=path,
+            token_data=self.get_token_data(),
+            api=self.api,
+            api_type="EDGE",
+            target_class=Message,
+            response_parser=ObjectParser,
+            custom_pagination_fn=paginate_messages,
+        )
+
+        params = {
+            "limit": limit,
+        }
+        if types:
+            # join types with comma
+            params["type"] = ",".join(types)
+
+        request.add_params(params)
+
+        return request.execute()
+
+
+class Message(AbstractObject):
+    def __init__(self, token_data=None, id=None):
+        super().__init__(token_data=token_data, id=id)
+
+    def get_endpoint(self):
+        if self["id"] is None:
+            raise ValueError("Message must have an id to get endpoint")
+
+        return "/conversations/messages/" + self["id"]
