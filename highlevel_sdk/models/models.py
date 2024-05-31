@@ -108,6 +108,22 @@ class Location(AbstractObject):
 
         return request.execute()
 
+    def get_opportunity(self, opportunity_id):
+        path = f"/opportunities/{opportunity_id}"
+
+        request = HighLevelRequest(
+            method="GET",
+            node=None,
+            endpoint=path,
+            token_data=self.get_token_data(),
+            api=self.api,
+            api_type="NODE",
+            target_class=Opportunity,
+            response_parser=ObjectParser,
+        )
+
+        return request.execute()
+
     def get_calendars(self):
         request = HighLevelRequest(
             method="GET",
