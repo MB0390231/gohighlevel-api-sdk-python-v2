@@ -264,6 +264,30 @@ class Location(AbstractObject):
 
         return request.execute()
 
+    def get_custom_fields(self):
+        path = f"/locations/{self['id']}/customFields"
+
+        request = HighLevelRequest(
+            method="GET",
+            node=None,
+            endpoint=path,
+            token_data=self.get_token_data(),
+            api=self.api,
+            api_type="EDGE",
+            target_class=CustomField,
+            response_parser=ObjectParser,
+        )
+
+        return request.execute()
+
+
+class CustomField(AbstractObject):
+    def __init__(self, token_data=None, id=None):
+        super().__init__(token_data=token_data, id=id)
+
+    def get_endpoint(self):
+        raise NotImplementedError("CustomField does not have an endpoint")
+
 
 class Appointment(AbstractObject):
     def __init__(self, token_data=None, id=None):
