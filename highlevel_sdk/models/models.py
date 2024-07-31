@@ -4,6 +4,7 @@ from highlevel_sdk_python.highlevel_sdk.object_parser import ObjectParser
 from highlevel_sdk_python.highlevel_sdk.utils import (
     paginate_conversations,
     paginate_messages,
+    paginate_form_submissions,
 )
 
 
@@ -279,6 +280,45 @@ class Location(AbstractObject):
         )
 
         return request.execute()
+
+    def get_form_submissions(self, form_id=None, limit=20, **kwargs):
+        path = f"/forms/submissions"
+
+        request = HighLevelRequest(
+            method="GET",
+            node=None,
+            endpoint=path,
+            token_data=self.get_token_data(),
+            api=self.api,
+            api_type="EDGE",
+            target_class=FormSubmission,
+            response_parser=ObjectParser,
+            custom_pagination_fn=paginate_form_submissions,
+        )
+
+        params = {
+            "locationId": self["id"],
+            "limit": limit,
+        }
+        if form_id:
+            params["formId"] = form_id
+
+        for key, value in kwargs.items():
+            params[key] = value
+
+        request.add_params(params)
+
+        return request.execute()
+
+
+class FormSubmission(AbstractObject):
+    def __init__(self, token_data=None, id=None):
+        super().__init__(token_data=token_data, id=id)
+
+    def get_endpoint(self):
+        if self["id"] is None:
+            raise ValueError("FormSubmission must have an id to get endpoint")
+        return "/forms/submissions/" + self["id"]
 
 
 class CustomField(AbstractObject):
