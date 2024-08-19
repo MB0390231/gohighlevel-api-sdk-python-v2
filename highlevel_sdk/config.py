@@ -11,17 +11,21 @@ class HighLevelConfig(object):
     AUTH_BASE_URL = "https://marketplace.gohighlevel.com"
     VERSION = "2021-07-28"
     SCOPES = [
-        "calendars/events.readonly",
-        "contacts.readonly",
-        "forms.readonly",
-        "invoices.readonly",
-        "locations.readonly",
-        "opportunities.readonly",
-        "surveys.readonly",
-        "workflows.readonly",
         "businesses.readonly",
-        "users.readonly",
-        "companies.readonly",
         "calendars.readonly",
+        "contacts.readonly",
+        "contacts.write",
+        "locations.readonly",
+        "locations.write",
+        "opportunities.readonly",
+        "opportunities.write",
+        "calendars/events.readonly",
+        "calendars/events.write",
+        "users.readonly",
+        "users.write",
+        "conversations.readonly",
+        "conversations/message.readonly",
+        "locations/customFields.readonly",
+        "forms.readonly",
     ]
     REDIRECT_URI = "http://localhost:3000/oauth/callback"
